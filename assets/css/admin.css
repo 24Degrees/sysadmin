@@ -178,6 +178,22 @@
 	margin: 0 0 10px;
 }
 
+.sysadmin-preview-stats {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+	font-size: 14px;
+	color: #1f2937;
+}
+
+.sysadmin-preview-stats span {
+	background: #eef5ff;
+	border: 1px solid #c7d9f1;
+	border-radius: 8px;
+	padding: 6px 10px;
+}
+
 .sysadmin-table-wrap {
 	max-height: 360px;
 	overflow: auto;

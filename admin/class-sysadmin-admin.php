@@ -199,18 +199,10 @@ class SysAdmin_Admin {
 						<div class="sysadmin-preview" data-password-column="<?php echo esc_attr( (string) $preview_payload['preview']['password_column_index'] ); ?>" data-suffix="<?php echo esc_attr( (string) $preview_payload['suffix'] ); ?>" data-position="<?php echo esc_attr( (string) $preview_payload['position'] ); ?>">
 							<?php $headers = isset( $preview_payload['preview']['headers'] ) && is_array( $preview_payload['preview']['headers'] ) ? $preview_payload['preview']['headers'] : array(); ?>
 							<h3><?php echo esc_html__( 'Preview', 'sysadmin' ); ?></h3>
-							<p>
-								<?php
-								echo esc_html(
-									sprintf(
-										/* translators: 1: valid rows, 2: invalid rows */
-										__( '%1$d geldige rijen, %2$d ongeldige rijen.', 'sysadmin' ),
-										(int) $preview_payload['preview']['valid_count'],
-										(int) $preview_payload['preview']['invalid_count']
-									)
-								);
-								?>
-							</p>
+							<div class="sysadmin-preview-stats" role="status" aria-live="polite">
+								<span><strong><?php echo esc_html__( 'Geslaagde rijen:', 'sysadmin' ); ?></strong> <?php echo esc_html( (string) (int) $preview_payload['preview']['valid_count'] ); ?></span>
+								<span><strong><?php echo esc_html__( 'Foute rijen:', 'sysadmin' ); ?></strong> <?php echo esc_html( (string) (int) $preview_payload['preview']['invalid_count'] ); ?></span>
+							</div>
 
 							<div class="sysadmin-table-wrap">
 								<table class="widefat striped">
