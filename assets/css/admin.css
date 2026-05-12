@@ -104,13 +104,59 @@
 	background: #fff;
 }
 
-.sysadmin-form .button-hero {
+.sysadmin-file-picker {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.sysadmin-file-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+}
+
+.sysadmin-file-trigger {
+	margin: 0;
+}
+
+.sysadmin-file-name {
+	font-size: 14px;
+	color: #1f2937;
+	font-weight: 500;
+	word-break: break-word;
+}
+
+.sysadmin .button-hero {
 	margin-top: 8px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	justify-self: start;
+	width: auto;
+	max-width: max-content;
+	min-width: 0;
 	border-radius: 10px;
 	padding: 0 18px;
 	background: #0a6bb8;
 	border-color: #09538f;
+}
+
+.sysadmin .button,
+.sysadmin button.button {
+	width: auto;
+	max-width: max-content;
+	min-width: 0;
+}
+
+.sysadmin-form .button,
+.sysadmin-form-inline .button {
+	justify-self: start;
 }
 
 .sysadmin-card ol {

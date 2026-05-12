@@ -124,7 +124,12 @@ class SysAdmin_Admin {
 		$notice_data     = $this->get_validated_notice_query_args();
 		$status          = $notice_data['status'];
 		$msg             = $notice_data['message'];
-		$preview_payload = $this->get_preview_payload( $notice_data['is_valid_nonce'] );
+		$preview_payload = $this->get_preview_payload();
+		$form_suffix     = ! empty( $preview_payload['suffix'] ) ? (string) $preview_payload['suffix'] : '';
+		$form_position   = ! empty( $preview_payload['position'] ) ? (string) $preview_payload['position'] : 'suffix';
+		$form_capitalize = ! empty( $preview_payload['capitalize_word'] );
+		$current_file    = ! empty( $preview_payload['input_filename'] ) ? (string) $preview_payload['input_filename'] : '';
+		$has_preview     = ! empty( $preview_payload['token'] );
 		?>
 		<div class="wrap sysadmin">
 			<h1><?php echo esc_html__( 'SysAdmin Toolbox voor Scholen', 'sysadmin' ); ?></h1>
@@ -158,21 +163,30 @@ class SysAdmin_Admin {
 						<?php wp_nonce_field( 'sysadmin_generate_google_codes', 'sysadmin_google_codes_nonce' ); ?>
 						<input type="hidden" name="action" value="sysadmin_generate_google_codes" />
 						<input type="hidden" name="sysadmin_mode" value="preview" />
+						<?php if ( $has_preview ) : ?>
+							<input type="hidden" name="sysadmin_preview_token" value="<?php echo esc_attr( (string) $preview_payload['token'] ); ?>" />
+						<?php endif; ?>
 
 						<label for="sysadmin_source_file"><?php echo esc_html__( 'Bronbestand (xlsx, xls of csv)', 'sysadmin' ); ?></label>
-						<input type="file" id="sysadmin_source_file" name="sysadmin_source_file" accept=".xlsx,.xls,.csv" required />
+						<div class="sysadmin-file-picker">
+							<input type="file" id="sysadmin_source_file" class="sysadmin-file-input" name="sysadmin_source_file" accept=".xlsx,.xls,.csv" <?php echo $has_preview ? '' : 'required'; ?> />
+							<label for="sysadmin_source_file" class="button button-secondary sysadmin-file-trigger"><?php echo esc_html__( 'Kies bestand', 'sysadmin' ); ?></label>
+							<span id="sysadmin_source_file_name" class="sysadmin-file-name" data-current-file="<?php echo esc_attr( $current_file ); ?>">
+								<?php echo '' !== $current_file ? esc_html( $current_file ) : esc_html__( 'Nog geen bestand geselecteerd', 'sysadmin' ); ?>
+							</span>
+						</div>
 
 						<label for="sysadmin_suffix"><?php echo esc_html__( 'Suffix (minimaal 4 karakters)', 'sysadmin' ); ?></label>
-						<input type="text" id="sysadmin_suffix" name="sysadmin_suffix" minlength="4" required />
+						<input type="text" id="sysadmin_suffix" name="sysadmin_suffix" minlength="4" required value="<?php echo esc_attr( $form_suffix ); ?>" />
 
 						<label for="sysadmin_suffix_position"><?php echo esc_html__( 'Type toevoeging', 'sysadmin' ); ?></label>
 						<select id="sysadmin_suffix_position" name="sysadmin_suffix_position" required>
-							<option value="suffix"><?php echo esc_html__( 'Suffix (achteraan: woord + suffix)', 'sysadmin' ); ?></option>
-							<option value="prefix"><?php echo esc_html__( 'Prefix (vooraan: suffix + woord)', 'sysadmin' ); ?></option>
+							<option value="suffix" <?php selected( 'suffix', $form_position ); ?>><?php echo esc_html__( 'Suffix (achteraan: woord + suffix)', 'sysadmin' ); ?></option>
+							<option value="prefix" <?php selected( 'prefix', $form_position ); ?>><?php echo esc_html__( 'Prefix (vooraan: prefix + woord)', 'sysadmin' ); ?></option>
 						</select>
 
 						<label class="sysadmin-inline-check">
-							<input type="checkbox" name="sysadmin_capitalize_word" value="1" checked />
+							<input type="checkbox" name="sysadmin_capitalize_word" value="1" <?php checked( $form_capitalize ); ?> />
 							<span><?php echo esc_html__( 'Geef het woord een hoofdletter (eerste letter)', 'sysadmin' ); ?></span>
 						</label>
 
@@ -272,7 +286,7 @@ class SysAdmin_Admin {
 									<span><?php echo esc_html__( 'Hoofdletter live tonen in preview en export', 'sysadmin' ); ?></span>
 								</label>
 
-								<button type="submit" class="button button-primary">
+								<button type="submit" class="button button-primary button-hero">
 									<?php echo esc_html__( 'Download gegenereerd bestand', 'sysadmin' ); ?>
 								</button>
 							</form>
@@ -328,30 +342,45 @@ class SysAdmin_Admin {
 
 		$capitalize_word = isset( $_POST['sysadmin_capitalize_word'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['sysadmin_capitalize_word'] ) );
 
-		if ( empty( $_FILES['sysadmin_source_file']['name'] ) || empty( $_FILES['sysadmin_source_file']['tmp_name'] ) ) {
-			$this->redirect_with_notice( 'error', __( 'Selecteer een bronbestand om te uploaden.', 'sysadmin' ) );
-		}
-
-		$file = array(
-			'name'     => isset( $_FILES['sysadmin_source_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['sysadmin_source_file']['name'] ) ) : '',
+		$uploaded_name = isset( $_FILES['sysadmin_source_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['sysadmin_source_file']['name'] ) ) : '';
+		$uploaded_tmp  = isset( $_FILES['sysadmin_source_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['sysadmin_source_file']['tmp_name'] ) ) : '';
+		$uploaded_file = array(
+			'name'     => $uploaded_name,
 			'type'     => isset( $_FILES['sysadmin_source_file']['type'] ) ? sanitize_mime_type( wp_unslash( $_FILES['sysadmin_source_file']['type'] ) ) : '',
-			'tmp_name' => isset( $_FILES['sysadmin_source_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['sysadmin_source_file']['tmp_name'] ) ) : '',
+			'tmp_name' => $uploaded_tmp,
 			'error'    => isset( $_FILES['sysadmin_source_file']['error'] ) ? absint( $_FILES['sysadmin_source_file']['error'] ) : UPLOAD_ERR_NO_FILE,
 			'size'     => isset( $_FILES['sysadmin_source_file']['size'] ) ? absint( $_FILES['sysadmin_source_file']['size'] ) : 0,
 		);
 
-		if ( ! empty( $file['error'] ) ) {
-			$this->redirect_with_notice( 'error', __( 'Upload mislukt. Probeer opnieuw.', 'sysadmin' ) );
-		}
+		$temp_file_path = '';
+		$input_filename = '';
 
-		$extension = strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) );
-		if ( ! in_array( $extension, array( 'xlsx', 'xls', 'csv' ), true ) ) {
-			$this->redirect_with_notice( 'error', __( 'Alleen xlsx, xls en csv bestanden worden ondersteund.', 'sysadmin' ) );
-		}
+		if ( '' !== $uploaded_name && '' !== $uploaded_tmp ) {
+			if ( ! empty( $uploaded_file['error'] ) ) {
+				$this->redirect_with_notice( 'error', __( 'Upload mislukt. Probeer opnieuw.', 'sysadmin' ) );
+			}
 
-		$temp_file_path = $this->move_upload_to_temp_storage( $file );
-		if ( is_wp_error( $temp_file_path ) ) {
-			$this->redirect_with_notice( 'error', $temp_file_path->get_error_message() );
+			$extension = strtolower( pathinfo( (string) $uploaded_file['name'], PATHINFO_EXTENSION ) );
+			if ( ! in_array( $extension, array( 'xlsx', 'xls', 'csv' ), true ) ) {
+				$this->redirect_with_notice( 'error', __( 'Alleen xlsx, xls en csv bestanden worden ondersteund.', 'sysadmin' ) );
+			}
+
+			$temp_file_path = $this->move_upload_to_temp_storage( $uploaded_file );
+			if ( is_wp_error( $temp_file_path ) ) {
+				$this->redirect_with_notice( 'error', $temp_file_path->get_error_message() );
+			}
+
+			$input_filename = (string) $uploaded_file['name'];
+		} else {
+			$token   = isset( $_POST['sysadmin_preview_token'] ) ? sanitize_text_field( wp_unslash( $_POST['sysadmin_preview_token'] ) ) : '';
+			$payload = '' !== $token ? get_transient( $this->get_preview_transient_key( $token ) ) : null;
+
+			if ( ! is_array( $payload ) || empty( $payload['temp_file_path'] ) || ! file_exists( (string) $payload['temp_file_path'] ) ) {
+				$this->redirect_with_notice( 'error', __( 'Selecteer eerst een bronbestand of maak een nieuwe preview.', 'sysadmin' ) );
+			}
+
+			$temp_file_path = (string) $payload['temp_file_path'];
+			$input_filename = isset( $payload['input_filename'] ) ? (string) $payload['input_filename'] : basename( $temp_file_path );
 		}
 
 		$preview = $this->google_codes->build_preview_data( $temp_file_path, $suffix, $position, $capitalize_word );
@@ -364,7 +393,7 @@ class SysAdmin_Admin {
 			$this->get_preview_transient_key( $token ),
 			array(
 				'temp_file_path' => $temp_file_path,
-				'input_filename' => (string) $file['name'],
+				'input_filename' => $input_filename,
 				'suffix'         => $suffix,
 				'position'       => $position,
 				'capitalize_word' => $capitalize_word,
@@ -372,6 +401,8 @@ class SysAdmin_Admin {
 			),
 			30 * MINUTE_IN_SECONDS
 		);
+
+		update_user_meta( get_current_user_id(), 'sysadmin_last_preview_token', $token );
 
 		$redirect_url = add_query_arg(
 			array(
@@ -464,13 +495,15 @@ class SysAdmin_Admin {
 	 *
 	 * @return array<string, mixed>|null
 	 */
-	private function get_preview_payload( $is_valid_nonce ) {
-		if ( ! $is_valid_nonce ) {
-			return null;
+	private function get_preview_payload() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is user-scoped and validated through transient lookup.
+		$token = isset( $_GET['sysadmin_preview_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sysadmin_preview_token'] ) ) : '';
+
+		if ( '' === $token ) {
+			$stored_token = get_user_meta( get_current_user_id(), 'sysadmin_last_preview_token', true );
+			$token        = is_string( $stored_token ) ? sanitize_text_field( $stored_token ) : '';
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Notice nonce was validated before this read.
-		$token = isset( $_GET['sysadmin_preview_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sysadmin_preview_token'] ) ) : '';
 		if ( '' === $token ) {
 			return null;
 		}

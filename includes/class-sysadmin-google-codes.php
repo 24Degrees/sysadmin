@@ -18,6 +18,13 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 class SysAdmin_Google_Codes {
 
 	/**
+	 * Header label for generated Google password column.
+	 *
+	 * @var string
+	 */
+	private $google_password_header = 'Google wachtwoord';
+
+	/**
 	 * Whether to capitalize the extracted word.
 	 *
 	 * @var bool
@@ -159,6 +166,9 @@ class SysAdmin_Google_Codes {
 		$headers             = isset( $rows[0] ) && is_array( $rows[0] ) ? $rows[0] : array();
 		$password_column_idx = isset( $rows[0] ) ? $this->find_password_column_index( $rows[0] ) : -1;
 		$username_column_idx = isset( $rows[0] ) ? $this->find_username_column_index( $rows[0] ) : -1;
+		$google_column_idx   = count( $headers );
+
+		$headers[] = $this->google_password_header;
 
 		if ( -1 === $password_column_idx ) {
 			return new WP_Error(
@@ -206,7 +216,7 @@ class SysAdmin_Google_Codes {
 			$valid_count++;
 			if ( count( $preview_rows ) < 20 ) {
 				$row_values                       = isset( $rows[ $row - 1 ] ) && is_array( $rows[ $row - 1 ] ) ? $rows[ $row - 1 ] : array();
-				$row_values[ $password_column_idx ] = $this->build_new_password( $base_word, $suffix, $placement );
+				$row_values[ $google_column_idx ]   = $this->build_new_password( $base_word, $suffix, $placement );
 
 				$preview_rows[] = array(
 					'row'    => $row,
@@ -220,7 +230,7 @@ class SysAdmin_Google_Codes {
 			'valid_count'   => $valid_count,
 			'invalid_count' => count( $invalid_rows ),
 			'headers'       => $headers,
-			'password_column_index' => $password_column_idx,
+			'password_column_index' => $google_column_idx,
 			'preview_rows'  => $preview_rows,
 			'invalid_rows'  => array_slice( $invalid_rows, 0, 20 ),
 			'invalid_rows_all' => $invalid_rows,
@@ -288,6 +298,9 @@ class SysAdmin_Google_Codes {
 		}
 
 		$password_column = Coordinate::stringFromColumnIndex( $password_column_idx + 1 );
+		$google_column   = Coordinate::stringFromColumnIndex( $header_count + 1 );
+
+		$sheet->setCellValue( $google_column . '1', $this->google_password_header );
 
 		$row_count = count( $rows );
 		for ( $row = 2; $row <= $row_count; $row++ ) {
@@ -299,12 +312,12 @@ class SysAdmin_Google_Codes {
 				continue;
 			}
 
-			$sheet->setCellValue( $cell_coordinate, $this->build_new_password( $base_word, $suffix, $placement ) );
+			$sheet->setCellValue( $google_column . $row, $this->build_new_password( $base_word, $suffix, $placement ) );
 		}
 
 		if ( ! empty( $selected_columns ) ) {
 			$highest_data_column = Coordinate::columnIndexFromString( $sheet->getHighestDataColumn() );
-			$highest_column      = max( $highest_data_column, $header_count );
+			$highest_column      = max( $highest_data_column, $header_count + 1 );
 			$this->filter_sheet_columns( $sheet, $selected_columns, $highest_column );
 		}
 

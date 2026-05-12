@@ -39,6 +39,25 @@
 		}
 	} );
 
+	const sourceFileInput = document.getElementById( 'sysadmin_source_file' );
+	const sourceFileName = document.getElementById( 'sysadmin_source_file_name' );
+	if ( sourceFileInput && sourceFileName ) {
+		const currentFileName = sourceFileName.getAttribute( 'data-current-file' );
+		if ( currentFileName ) {
+			sourceFileName.textContent = currentFileName;
+		}
+
+		sourceFileInput.addEventListener( 'change', function () {
+			if ( sourceFileInput.files && sourceFileInput.files.length > 0 ) {
+				sourceFileName.textContent = sourceFileInput.files[0].name;
+			} else if ( currentFileName ) {
+				sourceFileName.textContent = currentFileName;
+			} else {
+				sourceFileName.textContent = 'Nog geen bestand geselecteerd';
+			}
+		} );
+	}
+
 	const preview = document.querySelector( '.sysadmin-preview[data-password-column]' );
 	if ( ! preview ) {
 		return;
